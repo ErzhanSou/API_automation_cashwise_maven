@@ -1,11 +1,11 @@
 package steps;
 
-import com.sun.net.httpserver.Request;
 import io.cucumber.java.en.*;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import oracle.jdbc.proxy.annotation.Pre;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.testng.Assert;
@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 
 import static org.hamcrest.Matchers.equalTo;
 
@@ -27,6 +28,55 @@ public class ProductSteps {
     String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3MjE5MjE4MTgsImlhdCI6MTcxOTMyOTgxOCwidXNlcm5hbWUiOiJxYXRlc3RlckBnbWFpbC5jb20ifQ.fv8GVvDXSsaJ-VZTQHjXem6QcqWI5gerLvuDAsRPShkF8Xnu7pkSJF4hUp7W70sB6-JeJQu_Bo8OuFxyBWhYew";
     JSONObject requestBody = new JSONObject();
 
+
+    @Given("I have {string} with {string} as query param")
+    public void i_have_with_as_query_param(String key, String value) {
+        request = request.queryParam(key, value);
+    }
+
+    @When("I send GET request")
+    public void i_send_get_request() {
+        response = request.get();
+    }
+
+    @Then("verify the invoice details in the responce match the database")
+    public void verify_the_invoice_details_in_the_responce_match_the_database() throws SQLException {
+        HashMap<String, String> dataFromAPI = new HashMap<String, String>();
+        dataFromAPI.put("invoice_id", response.jsonPath().getString("invoice_id"));
+        dataFromAPI.put("invoice_title", response.jsonPath().getString("invoice_title"));
+        dataFromAPI.put("client_id", response.jsonPath().getString("client.client_id"));
+        dataFromAPI.put("client_name", response.jsonPath().getString("client.client_name"));
+        dataFromAPI.put("company_name", response.jsonPath().getString("client.company_name"));
+        dataFromAPI.put("email", response.jsonPath().getString("client.email"));
+        dataFromAPI.put("phone_number", response.jsonPath().getString("client.phone_number"));
+
+        System.out.println("API" + dataFromAPI);
+
+        Connection connection = DBUtilities.getDBConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement("select id, title, i.client_id, client_name, i.company_name_id, company_name, email, phone_number\n" +
+                "from invoices i\n" +
+                "join clients c\n" +
+                "on c.client_id = i.client_id\n" +
+                "where id = ?");
+
+        preparedStatement.setInt(1, Integer.parseInt(id));
+        ResultSet resultSet = preparedStatement.executeQuery();
+
+        while (resultSet.next()){
+            HashMap<String, String> dataFromDB = new HashMap<String, String>();
+
+            dataFromDB.put("invoice_id", resultSet.getString("id"));
+            dataFromDB.put("invoice_title", resultSet.getString("title"));
+            dataFromDB.put("client_id", resultSet.getString("client_id"));
+            dataFromDB.put("client_name", resultSet.getString("client_name"));
+            dataFromDB.put("company_name", resultSet.getString("company_name"));
+            dataFromDB.put("email", resultSet.getString("email"));
+            dataFromDB.put("phone_number", resultSet.getString("phone_number"));
+
+            Assert.assertEquals(dataFromAPI, dataFromDB);
+        }
+
+    }
 
 
     @Given("base url {string}")

@@ -9,7 +9,7 @@ import org.testng.annotations.DataProvider;
         plugin = "html:target/reports/cucumberReport.html",
         features = "src/test/resources",
         glue = "steps",
-        tags = "@createCategory",
+        tags = "@getInvoice",
         dryRun = true
 
 )
