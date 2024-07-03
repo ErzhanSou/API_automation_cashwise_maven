@@ -1,3 +1,4 @@
+@smoke
 Feature: user should be able to create a category
 
   @createCategory
