@@ -1,4 +1,4 @@
-Feature: creates a invoice
+Feature: @regression
 
   Background:
     Given base url "https://backend.cashwise.us/api/myaccount"
